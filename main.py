@@ -26,7 +26,7 @@ from handlers.tariff import (
     pay_stars_handler, pay_card_handler
 )
 from handlers.payment import successful_payment_handler
-from handlers.admin import admin_panel, admin_callback_handler
+from handlers.admin import admin_panel, admin_callback_handler, admin_text_handler
 from handlers.promocode import promocode_handler, enter_promocode_handler
 from handlers.status import status_command
 
@@ -59,9 +59,11 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(admin_callback_handler, pattern="^adm_"))
     app.add_handler(CallbackQueryHandler(enter_promocode_handler, pattern="^enter_promocode$"))
 
-    app.add_handler(PreCheckoutQueryHandler(lambda u, c: u.pre_checkout_query.answer(True)))
+    # Добавляем обработчик текста админа (высокий приоритет)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_text_handler), group=0)
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, promocode_handler), group=1)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_email_handler), group=2)
+    # email_handler пока отключен, чтобы не мешал
+    # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_email_handler), group=2)
 
     app.run_polling()

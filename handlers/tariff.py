@@ -117,12 +117,39 @@ async def send_invoice(update, context, tariff_id, stars):
     )
 
 async def activate_subscription(update, context, tariff_id, option, days):
+    from datetime import datetime, timedelta
+    import os, json
     user = update.effective_user
-    text = f"🎉 <b>Подписка активирована!</b>\n\nТариф: {TARIFFS[tariff_id]['name']}\nОпция: {option}\nСрок: {days} дн.\n"
+    expiry = (datetime.now() + timedelta(days=days)).strftime("%d.%m.%Y")
+    tariff_name = TARIFFS[tariff_id]['name']
+    text = (
+        f"🎉 <b>Подписка активирована!</b>\n\n"
+        f"Тариф: <b>{tariff_name}</b> · {option}\n"
+        f"Действует до: <b>{expiry}</b> ({days} дн.)\n\n"
+    )
     if option in ("proxy", "both"):
-        text += f"\n📡 <b>Прокси:</b> <code>{config['PROXY_LINK']}</code>"
+        text += f"📡 <b>Прокси:</b>\n<code>{config['PROXY_LINK']}</code>\n\n"
     if option in ("vpn", "both"):
-        text += f"\n🔐 <b>VPN-конфиг:</b> (ссылка в следующем сообщении)"
+        text += f"🔐 <b>VPN-конфиг:</b>\n<code>{config['VPN_LINK']}</code>\n<i>Скопируйте и вставьте в приложение</i>"
+
     await context.bot.send_message(user.id, text, parse_mode="HTML")
-    if option in ("vpn", "both"):
-        await context.bot.send_message(user.id, f"<code>{config['VPN_LINK']}</code>\n<i>Скопируйте и вставьте в приложение</i>", parse_mode="HTML")
+
+    # Сохраняем подписку в файл (для админки)
+    subs = []
+    if os.path.exists("subscriptions.json"):
+        try:
+            with open("subscriptions.json", "r") as f:
+                subs = json.load(f)
+        except:
+            pass
+    subs.append({
+        "user_id": user.id,
+        "username": user.username,
+        "tariff": tariff_name,
+        "option": option,
+        "days": days,
+        "expiry": expiry,
+        "activated_at": datetime.now().isoformat()
+    })
+    with open("subscriptions.json", "w") as f:
+        json.dump(subs, f, ensure_ascii=False, indent=2)
