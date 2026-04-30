@@ -1,8 +1,9 @@
 # PikaPey Boost ⚡️ v1.0
-# Главный модуль бота продажи подписок Boost
+# Главный модуль бота (main.py) для Railway Panel
 
 import logging
-from config import config  # теперь конфиг здесь!
+import os
+from config import config
 
 from telegram.ext import (
     ApplicationBuilder,
@@ -37,11 +38,11 @@ if __name__ == "__main__":
     logger.info(f"💳 Stars: {config['USE_STARS']}, ЮKassa: {config['USE_YOOMONEY']}")
     logger.info("="*50)
 
-    proxy_config = config.get("BOT_PROXY", {})
-    if proxy_config.get("enabled"):
-        proxy_url = proxy_config["url"]
+    # Прокси: используем SOCKS5_PROXY из окружения (панель) или из config, если есть
+    proxy_url = os.getenv("SOCKS5_PROXY") or config.get("BOT_PROXY", {}).get("url")
+    if proxy_url and os.getenv("SOCKS5_PROXY") is not None:
         logger.info(f"🔁 Бот использует прокси: {proxy_url}")
-        app = ApplicationBuilder().token(config["BOT_TOKEN"]).proxy(proxy_url).build()
+        app = ApplicationBuilder().token(config["BOT_TOKEN"]).proxy(proxy_url).get_updates_proxy(proxy_url).build()
     else:
         app = ApplicationBuilder().token(config["BOT_TOKEN"]).build()
 
