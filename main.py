@@ -20,7 +20,6 @@ logger = logging.getLogger("PikaPeyBoost")
 
 from handlers.start import start, check_subscription_callback, glavnoe_menu
 from handlers.offer import offer_callback, agree_offer_callback
-from handlers.email_input import get_email_handler
 from handlers.tariff import (
     tariff_menu, select_tariff_handler, option_handler,
     pay_stars_handler, pay_card_handler
@@ -59,11 +58,8 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(admin_callback_handler, pattern="^adm_"))
     app.add_handler(CallbackQueryHandler(enter_promocode_handler, pattern="^enter_promocode$"))
 
-    # Добавляем обработчик текста админа (высокий приоритет)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_text_handler), group=0)
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, promocode_handler), group=1)
-    # email_handler пока отключен, чтобы не мешал
-    # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_email_handler), group=2)
 
     app.run_polling()
