@@ -1,0 +1,71 @@
+{
+  "BOT_TOKEN": "ВАШ_ТОКЕН_БОТА",
+  "CHANNEL_USERNAME": "@PikaPey",
+  "OWNER_ID": 123456789,
+  "EXTRA_ADMIN_IDS": [],
+  "TRIAL_DAYS": 3,
+  "EMAIL_METHOD": "sendgrid",
+  "SENDGRID_API_KEY": "",
+  "SMTP_SERVER": "",
+  "SMTP_PORT": 587,
+  "SMTP_USER": "",
+  "SMTP_PASSWORD": "",
+  "YOOMONEY_PROVIDER_TOKEN": "",
+  "USE_STARS": true,
+  "USE_YOOMONEY": true,
+  "TARIFFS": {
+    "start": {
+      "name": "Start",
+      "price_stars": 1,
+      "price_rub": 1,
+      "days": 3,
+      "is_trial": true,
+      "has_proxy": true,
+      "has_vpn": false,
+      "max_devices": 1,
+      "description": "Пробный тариф на 3 дня. Только прокси."
+    },
+    "gold": {
+      "name": "Gold",
+      "price_stars": 120,
+      "price_rub": 120,
+      "days": 30,
+      "is_trial": false,
+      "has_proxy": true,
+      "has_vpn": false,
+      "max_devices": 1,
+      "description": "Базовый Boost на 30 дней. Прокси для Telegram."
+    },
+    "platinum": {
+      "name": "Platinum",
+      "price_stars": 250,
+      "price_rub": 250,
+      "days": 30,
+      "is_trial": false,
+      "has_proxy": true,
+      "has_vpn": true,
+      "max_devices": 2,
+      "description": "Прокси + VPN на 30 дней. До 2 устройств."
+    },
+    "vip": {
+      "name": "VIP",
+      "price_stars": 500,
+      "price_rub": 500,
+      "days": 30,
+      "is_trial": false,
+      "has_proxy": true,
+      "has_vpn": true,
+      "max_devices": 3,
+      "description": "Максимальный Boost на 30 дней. До 3 устройств."
+    }
+  },
+  "PROXY_LINKS": {
+    "main": "https://t.me/proxy?server=...&port=...&secret=...",
+    "temp": "https://t.me/proxy?server=...&port=...&secret=..."
+  },
+  "VPN_CONFIGS": {
+    "wireguard": "конфиг_wireguard_для_клиента"
+  },
+  "OFFER_TEXT": "Договор-оферта PikaPey Boost. Условия предоставления услуг...",
+  "STATS_FILE": "boost_stats.json"
+}
