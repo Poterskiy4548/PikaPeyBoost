@@ -51,7 +51,13 @@ if __name__ == "__main__":
     logger.info(f"💳 Stars: {config['USE_STARS']}, ЮKassa: {config['USE_YOOMONEY']}")
     logger.info("="*50)
 
-    app = ApplicationBuilder().token(config["BOT_TOKEN"]).build()
+    proxy_config = config.get("BOT_PROXY", {})
+    if proxy_config.get("enabled"):
+        proxy_url = proxy_config["url"]
+        logger.info(f"🔁 Бот использует прокси: {proxy_url}")
+        app = ApplicationBuilder().token(config["BOT_TOKEN"]).proxy(proxy_url).build()
+    else:
+        app = ApplicationBuilder().token(config["BOT_TOKEN"]).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_sub$"))

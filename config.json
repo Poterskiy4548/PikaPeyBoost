@@ -67,5 +67,11 @@
     "wireguard": "конфиг_wireguard_для_клиента"
   },
   "OFFER_TEXT": "Договор-оферта PikaPey Boost. Условия предоставления услуг...",
-  "STATS_FILE": "boost_stats.json"
+  "STATS_FILE": "boost_stats.json",
+  "BOT_PROXY": {
+    "enabled": false,
+    "url": "http://proxy-server:port",
+    "username": "",
+    "password": ""
+  }
 }
