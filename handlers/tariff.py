@@ -1,74 +1,92 @@
-# handlers/tariff.py
-# Выбор тарифа и формирование счёта
-
+import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes
 from config import config
 
 TARIFFS = config["TARIFFS"]
-USE_STARS = config["USE_STARS"]
-USE_YOOMONEY = config["USE_YOOMONEY"]
-YOOMONEY_PROVIDER_TOKEN = config.get("YOOMONEY_PROVIDER_TOKEN", "")
+VPN_SURCHARGE = config["VPN_SURCHARGE"]
+OWNER_ID = config["OWNER_ID"]
 
-async def tariff_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def tariff_menu(update, context):
     query = update.callback_query
     await query.answer()
-
     keyboard = []
-    for tariff_id, tariff in TARIFFS.items():
-        name = tariff["name"]
-        price = tariff["price_stars"] if USE_STARS else tariff["price_rub"]
-        currency = "XTR" if USE_STARS else "₽"
-        days = tariff["days"]
-        keyboard.append([
-            InlineKeyboardButton(
-                f"{name} — {price} {currency} / {days} дн.",
-                callback_data=f"tariff_select_{tariff_id}"
-            )
-        ])
-
+    for tid, t in TARIFFS.items():
+        keyboard.append([InlineKeyboardButton(f"{t['name']} · {t['days']} дн. · от {t['price_proxy']} XTR", callback_data=f"tariff_select_{tid}")])
     keyboard.append([InlineKeyboardButton("🏠 Главное меню", callback_data="glavnoe_menu")])
+    await query.edit_message_text("⚡️ <b>Выберите тариф</b>", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
+async def select_tariff_handler(update, context):
+    query = update.callback_query
+    _, _, tariff_id = query.data.partition("tariff_select_")
+    tariff = TARIFFS[tariff_id]
+    context.user_data["selected_tariff_id"] = tariff_id
+
+    keyboard = [
+        [InlineKeyboardButton("📡 Только прокси", callback_data=f"option_{tariff_id}_proxy")],
+        [InlineKeyboardButton("🔐 Только VPN", callback_data=f"option_{tariff_id}_vpn")],
+        [InlineKeyboardButton("📡+🔐 Прокси + VPN", callback_data=f"option_{tariff_id}_both")],
+        [InlineKeyboardButton("🔙 Назад к тарифам", callback_data="tariff_menu")]
+    ]
     await query.edit_message_text(
-        "⚡️ <b>Выберите тариф Boost</b>\n\n"
-        "После выбора вам будет предложен способ оплаты.",
+        f"<b>{tariff['name']}</b> · {tariff['days']} дн.\n\nВыберите, что подключить:",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def select_tariff_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def option_handler(update, context):
     query = update.callback_query
-    await query.answer()
-    _, _, tariff_id = query.data.partition("tariff_select_")
-    tariff = TARIFFS.get(tariff_id)
-    if not tariff:
-        await query.answer("Тариф не найден.", show_alert=True)
+    _, tariff_id, option = query.data.split("_")
+    tariff = TARIFFS[tariff_id]
+    uid = query.from_user.id
+
+    if option == "proxy":
+        price = tariff["price_proxy"]
+        vpn_included = False
+    elif option == "vpn":
+        price = tariff["price_vpn"] + VPN_SURCHARGE
+        vpn_included = True
+    else:
+        price = tariff["price_proxy"] + tariff["price_vpn"] + VPN_SURCHARGE
+        vpn_included = True
+
+    context.user_data["tariff_option"] = option
+    context.user_data["final_price"] = price
+    context.user_data["vpn_included"] = vpn_included
+
+    if uid == OWNER_ID:
+        await activate_subscription(update, context, tariff_id, option, days=tariff["days"])
         return
 
-    context.user_data["selected_tariff"] = tariff_id
+    promo_code = context.user_data.get("promo_code")
+    if promo_code:
+        promo = config["PROMOCODES"].get(promo_code)
+        if promo and promo["duration_days"]:
+            price = 0
+            days = promo["duration_days"]
+            context.user_data["final_price"] = 0
+            context.user_data["promo_duration"] = days
 
-    if USE_STARS and USE_YOOMONEY:
-        await query.edit_message_text(
-            f"💳 <b>Способ оплаты</b>\n\nТариф: <b>{tariff['name']}</b>\nСумма: {tariff['price_stars']} XTR или {tariff['price_rub']} ₽\n\nВыберите удобный способ:",
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌟 Telegram Stars", callback_data=f"pay_stars_{tariff_id}")],
-                [InlineKeyboardButton("💳 Банковская карта (ЮKassa)", callback_data=f"pay_card_{tariff_id}")],
-                [InlineKeyboardButton("🔙 Назад к тарифам", callback_data="tariff_menu")],
-            ])
-        )
-    elif USE_STARS:
-        await send_invoice(update, context, tariff_id, stars=True)
-    elif USE_YOOMONEY:
-        await send_invoice(update, context, tariff_id, stars=False)
+    currency = "XTR"
+    await query.edit_message_text(
+        f"💳 <b>Выбран тариф:</b> {tariff['name']} ({option})\n"
+        f"💰 Стоимость: <b>{price} {currency}</b>\n\n"
+        "Выберите способ оплаты:",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"🌟 Telegram Stars ({price} XTR)", callback_data=f"pay_stars_{tariff_id}")],
+            [InlineKeyboardButton(f"💳 Карта (ЮKassa) ({price} ₽)", callback_data=f"pay_card_{tariff_id}")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="tariff_menu")]
+        ])
+    )
 
-async def pay_stars_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def pay_stars_handler(update, context):
     query = update.callback_query
     await query.answer()
     _, _, tariff_id = query.data.partition("pay_stars_")
     await send_invoice(update, context, tariff_id, stars=True)
 
-async def pay_card_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def pay_card_handler(update, context):
     query = update.callback_query
     await query.answer()
     _, _, tariff_id = query.data.partition("pay_card_")
@@ -77,21 +95,34 @@ async def pay_card_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_invoice(update, context, tariff_id, stars):
     tariff = TARIFFS[tariff_id]
     uid = update.effective_user.id
-    name = tariff["name"]
-    desc = tariff.get("description", "Доступ Boost")
-    price = tariff["price_stars"] if stars else tariff["price_rub"]
+    option = context.user_data.get("tariff_option", "proxy")
+    price = context.user_data.get("final_price", tariff["price_proxy"])
     currency = "XTR" if stars else "RUB"
-    payload = f"boost_{tariff_id}_{uid}"
-    provider_token = "" if stars else YOOMONEY_PROVIDER_TOKEN
+    provider_token = "" if stars else config["YOOMONEY_PROVIDER_TOKEN"]
 
-    prices = [LabeledPrice(name, price * 100 if not stars else price)]
+    title = f"PikaPey Boost · {tariff['name']}"
+    description = f"{option} · {tariff['days']} дн."
+    payload = f"boost_{tariff_id}_{uid}_{option}"
+    prices = [LabeledPrice(title, price * 100 if not stars else price)]
 
     await context.bot.send_invoice(
         chat_id=uid,
-        title="PikaPey Boost",
-        description=desc,
+        title=title,
+        description=description,
         payload=payload,
         provider_token=provider_token,
         currency=currency,
-        prices=prices
+        prices=prices,
+        start_parameter="pay",
     )
+
+async def activate_subscription(update, context, tariff_id, option, days):
+    user = update.effective_user
+    text = f"🎉 <b>Подписка активирована!</b>\n\nТариф: {TARIFFS[tariff_id]['name']}\nОпция: {option}\nСрок: {days} дн.\n"
+    if option in ("proxy", "both"):
+        text += f"\n📡 <b>Прокси:</b> <code>{config['PROXY_LINK']}</code>"
+    if option in ("vpn", "both"):
+        text += f"\n🔐 <b>VPN-конфиг:</b> (ссылка в следующем сообщении)"
+    await context.bot.send_message(user.id, text, parse_mode="HTML")
+    if option in ("vpn", "both"):
+        await context.bot.send_message(user.id, f"<code>{config['VPN_LINK']}</code>\n<i>Скопируйте и вставьте в приложение</i>", parse_mode="HTML")
