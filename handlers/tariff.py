@@ -3,7 +3,7 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes
-from bot import config
+from config import config
 
 TARIFFS = config["TARIFFS"]
 USE_STARS = config["USE_STARS"]
@@ -11,7 +11,6 @@ USE_YOOMONEY = config["USE_YOOMONEY"]
 YOOMONEY_PROVIDER_TOKEN = config.get("YOOMONEY_PROVIDER_TOKEN", "")
 
 async def tariff_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показывает список тарифов."""
     query = update.callback_query
     await query.answer()
 
@@ -21,7 +20,6 @@ async def tariff_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         price = tariff["price_stars"] if USE_STARS else tariff["price_rub"]
         currency = "XTR" if USE_STARS else "₽"
         days = tariff["days"]
-        desc = tariff.get("description", "")
         keyboard.append([
             InlineKeyboardButton(
                 f"{name} — {price} {currency} / {days} дн.",
@@ -39,7 +37,6 @@ async def tariff_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def select_tariff_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обрабатывает выбор конкретного тарифа и предлагает способ оплаты."""
     query = update.callback_query
     await query.answer()
     _, _, tariff_id = query.data.partition("tariff_select_")
@@ -50,7 +47,6 @@ async def select_tariff_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
     context.user_data["selected_tariff"] = tariff_id
 
-    # Предлагаем способ оплаты, если оба включены; иначе сразу счёт
     if USE_STARS and USE_YOOMONEY:
         await query.edit_message_text(
             f"💳 <b>Способ оплаты</b>\n\nТариф: <b>{tariff['name']}</b>\nСумма: {tariff['price_stars']} XTR или {tariff['price_rub']} ₽\n\nВыберите удобный способ:",
@@ -67,21 +63,18 @@ async def select_tariff_handler(update: Update, context: ContextTypes.DEFAULT_TY
         await send_invoice(update, context, tariff_id, stars=False)
 
 async def pay_stars_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выставление счёта в Stars."""
     query = update.callback_query
     await query.answer()
     _, _, tariff_id = query.data.partition("pay_stars_")
     await send_invoice(update, context, tariff_id, stars=True)
 
 async def pay_card_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выставление счёта через ЮKassa."""
     query = update.callback_query
     await query.answer()
     _, _, tariff_id = query.data.partition("pay_card_")
     await send_invoice(update, context, tariff_id, stars=False)
 
 async def send_invoice(update, context, tariff_id, stars):
-    """Общая функция отправки счёта."""
     tariff = TARIFFS[tariff_id]
     uid = update.effective_user.id
     name = tariff["name"]
@@ -91,7 +84,7 @@ async def send_invoice(update, context, tariff_id, stars):
     payload = f"boost_{tariff_id}_{uid}"
     provider_token = "" if stars else YOOMONEY_PROVIDER_TOKEN
 
-    prices = [LabeledPrice(name, price * 100 if not stars else price)]  # в копейках для RUB
+    prices = [LabeledPrice(name, price * 100 if not stars else price)]
 
     await context.bot.send_invoice(
         chat_id=uid,

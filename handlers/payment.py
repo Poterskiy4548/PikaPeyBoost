@@ -3,13 +3,12 @@
 
 from telegram import Update
 from telegram.ext import ContextTypes
-from bot import config
+from config import config
 from services.email_sender import send_email
 
 TARIFFS = config["TARIFFS"]
 
 async def successful_payment_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Вызывается после успешной оплаты."""
     uid = update.effective_user.id
     payment = update.message.successful_payment
     tariff_id = context.user_data.get("selected_tariff")
@@ -20,7 +19,6 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
         await update.message.reply_text("⚠️ Ошибка: тариф не найден. Обратитесь в поддержку.")
         return
 
-    # Чек в чат
     receipt = (
         f"🧾 <b>Чек об оплате</b>\n\n"
         f"Тариф: <b>{tariff['name']}</b>\n"
@@ -31,7 +29,6 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
     )
     await update.message.reply_text(receipt, parse_mode="HTML")
 
-    # Отправка чека на email
     if email:
         subject = f"Чек PikaPey Boost: {tariff['name']}"
         body = (
@@ -41,5 +38,3 @@ async def successful_payment_handler(update: Update, context: ContextTypes.DEFAU
             f"ID транзакции: {payment.telegram_payment_charge_id}\n"
         )
         await send_email(email, subject, body)
-
-    # Здесь можно автоматически выдать доступ (прокси/VPN) — добавим позже

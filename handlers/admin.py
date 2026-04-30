@@ -3,7 +3,7 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from bot import config
+from config import config
 
 OWNER_ID = config["OWNER_ID"]
 

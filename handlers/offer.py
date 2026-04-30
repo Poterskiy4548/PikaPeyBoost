@@ -3,12 +3,11 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from bot import config
+from config import config
 
 OFFER_TEXT = config.get("OFFER_TEXT", "Договор-оферта PikaPey Boost.\n\nУсловия предоставления услуг...\n\nПродолжая, вы соглашаетесь с условиями.")
 
 async def offer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показывает текст оферты и кнопку 'Согласен'."""
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(
@@ -21,10 +20,8 @@ async def offer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def agree_offer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Фиксирует согласие и запрашивает email."""
     query = update.callback_query
     uid = query.from_user.id
-    # Здесь потом можно сохранить в БД
     context.user_data["offer_accepted"] = True
     await query.answer("✅ Согласие принято")
     await query.edit_message_text(

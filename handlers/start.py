@@ -4,26 +4,21 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.subs import check_subscription
-
-# Загружаем конфиг
-from bot import config
+from config import config
 
 CHANNEL_USERNAME = config["CHANNEL_USERNAME"]
 OWNER_ID = config["OWNER_ID"]
 SUPPORT_LINK = "https://t.me/PikaPey_support_bot"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Приветствие и проверка подписки."""
     user = update.effective_user
     uid = user.id
     name = user.first_name
     username = user.username
 
-    # Проверяем подписку
     subbed, _ = await check_subscription(uid, context.bot, CHANNEL_USERNAME)
 
     if uid == OWNER_ID or subbed:
-        # Подписан (или владелец) — показываем главное меню
         text = (
             f"⚡️ <b>PikaPey Boost</b>\n\n"
             f"Привет, {username or name}!\n\n"
@@ -37,7 +32,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if uid == OWNER_ID:
             keyboard.append([InlineKeyboardButton("👑 Админ-панель", callback_data="admin_panel")])
     else:
-        # Не подписан — просим подписаться
         channel_link = f"https://t.me/{CHANNEL_USERNAME.lstrip('@')}"
         text = (
             f"⚡️ <b>PikaPey Boost</b>\n\n"
@@ -59,9 +53,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         await update.callback_query.edit_message_text(text, parse_mode="HTML", reply_markup=reply_markup)
 
-
 async def check_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Коллбэк проверки подписки (кнопка «Проверить подписку»)."""
     query = update.callback_query
     uid = query.from_user.id
     name = query.from_user.first_name
@@ -89,8 +81,5 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
             ])
         )
 
-
 async def glavnoe_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат в главное меню."""
-    # Просто вызываем start заново
     await start(update, context)
