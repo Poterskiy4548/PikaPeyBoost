@@ -31,10 +31,11 @@ async def show_main(update, context, name, is_owner):
     text = (
         "⚡️ <b>PikaPey Boost</b> — ваш доступ без границ\n\n"
         f"Добро пожаловать, {name}!\n\n"
-        "Выберите тариф и опции ниже 👇"
+        "Что вы хотите сделать?"
     )
     keyboard = [
         [InlineKeyboardButton("🚀 Выбрать тариф", callback_data="tariff_menu")],
+        [InlineKeyboardButton("🎟 Промокод", callback_data="enter_promocode")],
         [InlineKeyboardButton("📋 Статус подписки", callback_data="status")],
         [InlineKeyboardButton("💬 Поддержка", url="https://t.me/PikaPey_support_bot")],
     ]
@@ -61,7 +62,6 @@ async def show_subscribe(update, context, name):
 async def check_subscription_callback(update, context):
     query = update.callback_query
     uid = query.from_user.id
-    name = query.from_user.first_name
     await query.answer()
     subbed, err = await check_subscription(uid, context.bot, config["CHANNEL_USERNAME"])
     if subbed or uid == config["OWNER_ID"]:

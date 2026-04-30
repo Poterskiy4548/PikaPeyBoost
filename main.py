@@ -1,6 +1,4 @@
 # PikaPey Boost ⚡️ v2.0
-# Улучшенный интерфейс, промокоды, оферта, управление подписками
-
 import logging
 import os
 from config import config
@@ -29,7 +27,7 @@ from handlers.tariff import (
 )
 from handlers.payment import successful_payment_handler
 from handlers.admin import admin_panel, admin_callback_handler
-from handlers.promocode import promocode_handler
+from handlers.promocode import promocode_handler, enter_promocode_handler
 from handlers.status import status_command
 
 if __name__ == "__main__":
@@ -59,6 +57,7 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(pay_card_handler, pattern="^pay_card_"))
     app.add_handler(CallbackQueryHandler(admin_panel, pattern="^admin_panel$"))
     app.add_handler(CallbackQueryHandler(admin_callback_handler, pattern="^adm_"))
+    app.add_handler(CallbackQueryHandler(enter_promocode_handler, pattern="^enter_promocode$"))
 
     app.add_handler(PreCheckoutQueryHandler(lambda u, c: u.pre_checkout_query.answer(True)))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
